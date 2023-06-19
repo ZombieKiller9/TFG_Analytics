@@ -1,0 +1,104 @@
+pip install xgboost
+from xgboost import XGBClassifier
+%matplotlib inline
+from sklearn.model_selection import train_test_split
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
+import pandas as pd
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
+
+df = pd.read_excel('datatfg.xlsx')
+
+df.head(5)
+
+# Dividimos los datos en entrenamiento y prueba
+from sklearn.model_selection import train_test_split
+# X son nuestras variables independientes
+X = df.drop(["Resultado"],axis = 1)
+
+# y es nuestra variable dependiente
+y = df.Resultado
+
+# División 75% de datos para entrenamiento, 25% de daatos para test
+X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=.25)
+
+xgb = XGBClassifier(n_estimators = 20, learning_rate = 0.1, max_depth = 7)
+
+xgb.fit(X_train.values, y_train)
+
+# Accuracy promedio
+xgb.score(X_test, y_test)
+
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
+
+# Predicción del modelo usando los datos de prueba
+y_pred = xgb.predict(X_test)
+matriz = confusion_matrix(y_test,y_pred)
+
+plot_confusion_matrix(conf_mat=matriz, figsize=(6,6), show_normed=False)
+plt.tight_layout()
+
+# verificar características importantes
+feature_importances_df = pd.DataFrame(
+    {"feature": list(X.columns), "importance": xgb.feature_importances_}
+).sort_values("importance", ascending=False)
+
+# Mostrar
+feature_importances_df
+
+# cargar datos con características seleccionadas
+X = df.drop(["Resultado", "showAddress"], axis=1)
+y = df["Resultado"]
+
+
+# dividir en conjunto de entrenamiento y de prueba
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, stratify=y, test_size=0.25
+)
+
+# crear clasificador
+clf = XGBClassifier(n_estimators=100)
+
+# Entrenar el modelo usando el conjunto de entrenamiento
+clf.fit(X_train, y_train)
+
+# predicción en el conjunto de prueba
+y_pred = clf.predict(X_test)
+
+# Calcular la precisión del modelo,
+print("Precisión:", accuracy_score(y_test, y_pred))
+
+## CROSS VALIDATION (HIPERPARAMETER TUNING)
+param_grid = {
+    'n_estimators': [5, 100, 150, 600],
+    'max_depth': [2, 5, 7, 9]
+}
+
+from sklearn.model_selection import GridSearchCV
+grid_clf = GridSearchCV(xgb, param_grid, cv=10)
+grid_clf.fit(X_train, y_train)
+
+grid_clf.best_estimator_
+grid_clf.best_params_
+
+pred = clf.predict(X_test)
+print(confusion_matrix(y_test, pred))
+print(classification_report(y_test, pred))
+
+# crear clasificador
+clf = XGBClassifier(n_estimators = 600, learning_rate = 0.1, max_depth = 7)
+
+# Entrenar el modelo usando el conjunto de entrenamiento
+clf.fit(X_train, y_train)
+
+# predicción en el conjunto de prueba
+y_pred = clf.predict(X_test)
+
+# Calcular la precisión del modelo,
+print("Precisión:", accuracy_score(y_test, y_pred))
