@@ -1,0 +1,49 @@
+import pandas as pd
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import VotingClassifier
+from sklearn.ensemble import RandomForestClassifier
+from tabpfn import TabPFNClassifier
+from xgboost import XGBClassifier
+
+# Carga el archivo CSV como un DataFrame de Pandas
+df = pd.read_excel('datatfg.xlsx')
+
+# Divide el DataFrame en características y etiquetas
+X = df.drop(["Resultado"],axis = 1)
+y = df.Resultado
+
+# Define los nombres de las características de entrada
+feature_names = ['numPhotos','propertyType','size','exterior','rooms','bathrooms','Clasificacion',
+                 'latitude','longitude','showAddress','distance','hasVideo','status','newDevelopment','hasLift','priceByArea',
+                 'detailedType','hasPlan','has3DTour','has360','hasStaging','floor','parkingSpace','labels','BankOffer']
+
+# Divide los datos en conjuntos de entrenamiento y prueba
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Crea una lista de modelos
+model1 = RandomForestClassifier(n_estimators = 100, random_state = 42,min_samples_leaf = 8)
+
+model2 = TabPFNClassifier(device='cpu')
+
+model3 = XGBClassifier(n_estimators = 600, learning_rate = 0.1, max_depth = 7)
+model3.set_params(**{'n_jobs': -1, 'learning_rate': 0.1, 'max_depth': 7, 'feature_names': feature_names})
+
+models = [("Random_Forest", model1), ("TabPFN", model2), ("XGBoost", model3)]
+
+# Crea un modelo de ensamble con los modelos anteriores
+model = VotingClassifier(models, voting='soft', flatten_transform=True, n_jobs=-1)
+
+# Entrena el modelo con los datos de entrenamiento
+model.fit(X_train.values, y_train.values)
+
+# Hacer una predicción con el modelo de votación
+X_test = [[10,0,60,1,2,1,0,4044712,-36902726,1,3556,0,0,0,1,6552,0,0,0,0,0,5,0,0,0]]
+prediccion = model.predict(X_test)
+
+# Calcula la precisión del modelo
+accuracy = accuracy_score(y_test, y_pred)
+
+print("Precisión del modelo:", accuracy)
+
+print(f'El Resultado para un piso con dichas características es {prediccion[0]}')
