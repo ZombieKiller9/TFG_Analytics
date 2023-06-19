@@ -1,0 +1,71 @@
+pip install --upgrade joblib
+pip install --ignore-installed PyYAML
+pip install tabpfn
+
+import pandas as pd
+import numpy as np
+from tabpfn import TabPFNClassifier
+%matplotlib inline
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.metrics import accuracy_score
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
+
+# Cargamos el dataset
+df = pd.read_excel('datatfg.xlsx')
+
+# Dividimos los datos en entrenamiento y prueba
+from sklearn.model_selection import train_test_split
+# X son nuestras variables independientes
+X = df.drop(["Resultado"],axis = 1)
+
+# y es nuestra variable dependiente
+y = df.Resultado
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# Creaamos el modelo de Bosques Aleatorios (y configuramos el número de estimadores (árboles de decisión))
+classifier = TabPFNClassifier(device='cpu')
+
+classifier.fit(X_train, y_train)
+
+classifier.score(X_test, y_test)
+
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
+
+# Predicción del modelo usando los datos de prueba
+y_pred = classifier.predict(X_test)
+matriz = confusion_matrix(y_test,y_pred)
+
+plot_confusion_matrix(conf_mat=matriz, figsize=(6,6), show_normed=False)
+plt.tight_layout()
+
+# cargar datos con características seleccionadas
+X = df.drop(["Resultado", "BankOffer","hasStaging","newDevelopment"], axis=1)
+y = df["Resultado"]
+
+
+# dividir en conjunto de entrenamiento y de prueba
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, stratify=y, test_size=0.25, random_state=42
+)
+
+# crear clasificador
+clf = TabPFNClassifier(device='cpu')
+
+# Entrenar el modelo usando el conjunto de entrenamiento
+clf.fit(X_train, y_train)
+
+# predicción en el conjunto de prueba
+y_pred = clf.predict(X_test)
+
+# Calcular la precisión del modelo,
+print("Precisión:", accuracy_score(y_test, y_pred))
+
+pred = clf.predict(X_test)
+print(confusion_matrix(y_test, pred))
+print(classification_report(y_test, pred))
