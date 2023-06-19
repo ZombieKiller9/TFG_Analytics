@@ -1,0 +1,134 @@
+# Importamos librerias
+
+import base64
+import requests as rq
+import json
+import pandas as pd
+
+# Función para obtener token personal
+
+def get_oauth_token():
+    '''
+    This function will return our personalised token
+    '''
+    api_key = '6yxk61zn2lvzhym9yo0jkn0guhgrrl3z'   # Llave API personal de Idealista
+    secret = 'FWccFhuBbFnV'   # Codigo secreto personal de Idealista
+
+    message = api_key + ":" + secret   # Combinación de llave API y codigo secreto
+
+    auth = "Basic " + base64.b64encode(message.encode("ascii")).decode("ascii")   # codificació en base64
+
+    headers_dic = {"Authorization" : auth,
+                   "Content-Type" : "application/x-www-form-urlencoded;charset=UTF-8"}  
+
+    params_dic = {"grant_type" : "client_credentials",  
+                  "scope" : "read"}
+
+    r = rq.post("https://api.idealista.com/oauth/token",   
+                      headers = headers_dic,
+                      params = params_dic)
+
+    token = json.loads(r.text)['access_token']   
+
+    return token
+# Filtro de parámetros a utilizar
+
+base_url = 'https://api.idealista.com/3.5/'     # URL
+country = 'es'     # País (es, it, pt)                          
+language = 'es'     # Idioma (es, it, pt, en, ca) 
+max_items = '50'     # Número máximo de items por llamada
+operation = 'sale'     # Tipo de operación (sale, rent) 
+property_type = 'homes'     # Tipo de propiedad (homes, offices, premises, garages, bedrooms)
+order = 'priceDown'     # Orden del listado
+center = '40.4167,-3.70325'     # Coordenadas del centro establecido
+distance = '4000'     # Máxima distancia al centro
+sort = 'desc'     # Orden de salida de los datos
+bankOffer = 'False'     # Si pertenece a un banco
+maxprice = '750000'     # Precio máximo
+minprice = '700000'
+
+# Función de busqueda en la URL
+
+def define_search_url():
+    '''
+    This function will combine our params with the url, in order to create our own search url
+    '''
+    url = (base_url +      
+           country +
+           '/search?operation=' + operation +
+           '&maxItems=' + max_items +
+           '&order=' + order +
+           '&center=' + center +
+           '&distance=' + distance +
+           '&propertyType=' + property_type +
+           '&sort=' + sort + 
+           '&numPage=%s' +
+           '&smokeVentilation' + smoke +
+           '&airConditioning' + air +
+           '&minPrice=' + minprice+
+           '&maxPrice=' + maxprice +
+           '&language=' + language)
+    
+    return url
+
+url = define_search_url()
+
+def search_api(url):  
+    '''
+    This function will use the token and url created previously, and return our search results.
+    '''
+    token = get_oauth_token()   
+
+    headers = {'Content-Type': 'Content-Type: multipart/form-data;',  
+               'Authorization' : 'Bearer ' + token}
+
+    content = rq.post(url, headers = headers) 
+
+    result = json.loads(content.text)
+
+    return result
+
+pagination = 1
+first_search_url = url %(pagination)
+results = search_api(first_search_url)
+total_pages = results['totalPages']
+
+def results_to_df(results):
+    '''
+    This function will save the json results as a dataframe and return the resulting dataframe
+    '''
+    df = pd.DataFrame.from_dict(results['elementList'])
+
+    return df
+
+def concat_df(df, df_tot):
+    '''
+    This function will take the main dataframe (df_tot), and concat it with the given individual dataframe, 
+    returning the main dataframe 
+    '''
+    pd.concat([df_tot,df])
+    
+    return df_tot
+
+# Guardamos los resultados
+df = results_to_df(results)
+
+# Creamos un dataframe vacio al que introducirle los datos
+df_tot = pd.DataFrame()
+df_tot = concat_df(df, df_tot)
+
+# Creamos el archivo csv en el que guardar los datos
+
+file_path = 'idealista.csv'
+
+def df_to_csv(df):
+    '''
+    This function will take a given dataframe and save it as a csv file
+    '''
+    df = df.reset_index()  
+    df.to_csv(file_path, index=False)
+    
+# Archivo csv resultante
+df_to_csv(df_tot)
+df.head()
+df.to_csv(file_path, index=False)
