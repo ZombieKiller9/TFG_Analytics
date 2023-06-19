@@ -1,0 +1,130 @@
+pip install mlxtend
+%matplotlib inline
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
+
+# Cargamos el dataset
+df = pd.read_excel('datatfg.xlsx')
+# Descripción genereal del conjunto de datos
+df.describe()
+
+df.head()
+
+# Información del dataset
+df.info()
+
+# Dividimos los datos en entrenamiento y prueba
+from sklearn.model_selection import train_test_split
+# X son nuestras variables independientes
+X = df.drop(["Resultado"],axis = 1)
+
+# y es nuestra variable dependiente
+y = df.Resultado
+
+# División 75% de datos para entrenamiento, 25% de daatos para test
+X_train, X_test, y_train, y_test = train_test_split(X, y,random_state=0)
+
+# Creaamos el modelo de Bosques Aleatorios (y configuramos el número de estimadores (árboles de decisión))
+BA_model = RandomForestClassifier(n_estimators = 19, 
+                                  random_state = 2016,
+                                  min_samples_leaf = 8,)
+
+BA_model.fit(X_train, y_train)
+
+# Accuracy promedio
+BA_model.score(X_test, y_test)
+
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.metrics import confusion_matrix
+
+# Predicción del modelo usando los datos de prueba
+y_pred = BA_model.predict(X_test)
+matriz = confusion_matrix(y_test,y_pred)
+
+plot_confusion_matrix(conf_mat=matriz, figsize=(6,6), show_normed=False)
+plt.tight_layout()
+
+# verificar características importantes
+feature_importances_df = pd.DataFrame(
+    {"feature": list(X.columns), "importance": BA_model.feature_importances_}
+).sort_values("importance", ascending=False)
+
+# Mostrar
+feature_importances_df
+
+# cargar datos con características seleccionadas
+X = df.drop(["Resultado", "BankOffer","hasStaging","newDevelopment"], axis=1)
+y = df["Resultado"]
+
+
+# dividir en conjunto de entrenamiento y de prueba
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, stratify=y, test_size=0.25, random_state=42
+)
+
+# crear clasificador
+clf = RandomForestClassifier(n_estimators=100)
+
+# Entrenar el modelo usando el conjunto de entrenamiento
+clf.fit(X_train, y_train)
+
+# predicción en el conjunto de prueba
+y_pred = clf.predict(X_test)
+
+# Calcular la precisión del modelo,
+print("Precisión:", accuracy_score(y_test, y_pred))
+
+### CROSS VALIDATION (HIPERPARAMETER TUNING)
+param_grid = {
+    'n_estimators': [5, 10, 15, 20],
+    'max_depth': [2, 5, 7, 9]
+}
+
+from sklearn.model_selection import GridSearchCV
+grid_clf = GridSearchCV(BA_model, param_grid, cv=10)
+grid_clf.fit(X_train, y_train)
+
+grid_clf.best_estimator_
+grid_clf.best_params_
+pred = clf.predict(X_test)
+print(confusion_matrix(y_test, pred))
+print(classification_report(y_test, pred))
+
+# Creaamos el modelo de Bosques Aleatorios (y configuramos el número de estimadores (árboles de decisión))
+BA_model = RandomForestClassifier(n_estimators = 20, 
+                                  random_state = 42,
+                                  min_samples_leaf = 16,)
+
+
+BA_model.fit(X_train, y_train)
+
+# Accuracy promedio
+BA_model.score(X_test, y_test)
+
+# cargar datos con características seleccionadas
+X = df.drop(["Resultado", "BankOffer","hasStaging","newDevelopment"], axis=1)
+y = df["Resultado"]
+
+
+# dividir en conjunto de entrenamiento y de prueba
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, stratify=y, test_size=0.25, random_state=42
+)
+
+# crear clasificador
+clf = RandomForestClassifier(n_estimators=20)
+
+# Entrenar el modelo usando el conjunto de entrenamiento
+clf.fit(X_train, y_train)
+
+# predicción en el conjunto de prueba
+y_pred = clf.predict(X_test)
+
+# Calcular la precisión del modelo,
+print("Precisión:", accuracy_score(y_test, y_pred))
